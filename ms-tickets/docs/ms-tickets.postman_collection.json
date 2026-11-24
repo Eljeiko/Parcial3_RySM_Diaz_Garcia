@@ -1,0 +1,798 @@
+{
+  "info": {
+    "name": "ms-tickets",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "usuarios_url",
+      "value": "http://127.0.0.1:3001"
+    },
+    {
+      "key": "tickets_url",
+      "value": "http://127.0.0.1:3011"
+    },
+    {
+      "key": "admin_email",
+      "value": "admin@empresa.com"
+    },
+    {
+      "key": "admin_password",
+      "value": "Admin2026*"
+    },
+    {
+      "key": "token_admin",
+      "value": ""
+    },
+    {
+      "key": "token_despacho",
+      "value": ""
+    },
+    {
+      "key": "ticket_id",
+      "value": ""
+    },
+    {
+      "key": "numero_nuevo",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "01 Login administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Código 200', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('token_admin', pm.response.json().token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{usuarios_url}}/usuarios/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{admin_email}}\",\n  \"password\": \"{{admin_password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "02 Crear usuario despacho (201 o 409 si ya existe)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('201 o 409', () => pm.expect([201, 409]).to.include(pm.response.code));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{usuarios_url}}/usuarios",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Usuario Despacho\",\n  \"email\": \"despacho@empresa.com\",\n  \"password\": \"Despacho2026*\",\n  \"rol\": \"despacho\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "03 Login despacho",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Código 200', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('token_despacho', pm.response.json().token);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{usuarios_url}}/usuarios/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"despacho@empresa.com\",\n  \"password\": \"Despacho2026*\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "04 Listar sin token - 401",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Código 401', () => pm.response.to.have.status(401));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{tickets_url}}/tickets"
+      }
+    },
+    {
+      "name": "05 Listar con token administrador - 200",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Código 200', () => pm.response.to.have.status(200));",
+              "pm.test('Es un arreglo', () => pm.expect(pm.response.json()).to.be.an('array'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{tickets_url}}/tickets"
+      }
+    },
+    {
+      "name": "06 Listar con token despacho - 200",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Código 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_despacho}}"
+          }
+        ],
+        "url": "{{tickets_url}}/tickets"
+      }
+    },
+    {
+      "name": "07 Filtro ?prioridad=alta - 200",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Código 200', () => pm.response.to.have.status(200));",
+              "pm.test('Todos son alta', () => pm.response.json().forEach(t => pm.expect(t.prioridad).to.eql('alta')));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{tickets_url}}/tickets?prioridad=alta"
+      }
+    },
+    {
+      "name": "08 Filtro con prioridad inválida - 400",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Código 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{tickets_url}}/tickets?prioridad=urgente"
+      }
+    },
+    {
+      "name": "09 Crear ticket - 201",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('numero_nuevo', 'TK-' + Date.now());"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Código 201', () => pm.response.to.have.status(201));",
+              "pm.collectionVariables.set('ticket_id', pm.response.json().id);",
+              "pm.test('Trae Location', () => pm.response.to.have.header('Location'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{tickets_url}}/tickets",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"numero\": \"{{numero_nuevo}}\",\n  \"asunto\": \"Falla en la red del laboratorio\",\n  \"prioridad\": \"alta\",\n  \"estado\": \"abierto\",\n  \"fecha\": \"2026-11-20\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "10 Crear con numero repetido - 409",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Código 409', () => pm.response.to.have.status(409));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{tickets_url}}/tickets",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"numero\": \"{{numero_nuevo}}\",\n  \"asunto\": \"Falla en la red del laboratorio\",\n  \"prioridad\": \"alta\",\n  \"estado\": \"abierto\",\n  \"fecha\": \"2026-11-20\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "11 Crear con datos inválidos - 400",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Código 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{tickets_url}}/tickets",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"numero\": \"\",\n  \"asunto\": \"x\",\n  \"prioridad\": \"urgente\",\n  \"estado\": \"abierto\",\n  \"fecha\": \"2026-02-30\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "12 Crear con rol despacho - 403",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Código 403', () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_despacho}}"
+          }
+        ],
+        "url": "{{tickets_url}}/tickets",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"numero\": \"TK-NOPERMITIDO\",\n  \"asunto\": \"Falla en la red del laboratorio\",\n  \"prioridad\": \"alta\",\n  \"estado\": \"abierto\",\n  \"fecha\": \"2026-11-20\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "13 Obtener por id - 200",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Código 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{tickets_url}}/tickets/{{ticket_id}}"
+      }
+    },
+    {
+      "name": "14 Obtener id inexistente - 404",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Código 404', () => pm.response.to.have.status(404));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{tickets_url}}/tickets/999999"
+      }
+    },
+    {
+      "name": "15 Obtener id inválido - 400",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Código 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{tickets_url}}/tickets/abc"
+      }
+    },
+    {
+      "name": "16 Actualizar - 200",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Código 200', () => pm.response.to.have.status(200));",
+              "pm.test('Quedó cerrado', () => pm.expect(pm.response.json().estado).to.eql('cerrado'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{tickets_url}}/tickets/{{ticket_id}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"numero\": \"{{numero_nuevo}}\",\n  \"asunto\": \"Falla en la red del laboratorio\",\n  \"prioridad\": \"alta\",\n  \"estado\": \"cerrado\",\n  \"fecha\": \"2026-11-20\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "17 Actualizar con numero de otro ticket - 409",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Código 409', () => pm.response.to.have.status(409));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{tickets_url}}/tickets/{{ticket_id}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"numero\": \"TK-0001\",\n  \"asunto\": \"Falla en la red del laboratorio\",\n  \"prioridad\": \"alta\",\n  \"estado\": \"abierto\",\n  \"fecha\": \"2026-11-20\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "18 Actualizar con datos inválidos - 400",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Código 400', () => pm.response.to.have.status(400));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{tickets_url}}/tickets/{{ticket_id}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"numero\": \"{{numero_nuevo}}\",\n  \"asunto\": \"Falla en la red del laboratorio\",\n  \"prioridad\": \"x\",\n  \"estado\": \"abierto\",\n  \"fecha\": \"2026-11-20\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "19 Actualizar id inexistente - 404",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Código 404', () => pm.response.to.have.status(404));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{tickets_url}}/tickets/999999",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"numero\": \"TK-INEXISTENTE\",\n  \"asunto\": \"Falla en la red del laboratorio\",\n  \"prioridad\": \"alta\",\n  \"estado\": \"abierto\",\n  \"fecha\": \"2026-11-20\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "20 Actualizar con rol despacho - 403",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Código 403', () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_despacho}}"
+          }
+        ],
+        "url": "{{tickets_url}}/tickets/{{ticket_id}}",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"numero\": \"{{numero_nuevo}}\",\n  \"asunto\": \"Falla en la red del laboratorio\",\n  \"prioridad\": \"alta\",\n  \"estado\": \"abierto\",\n  \"fecha\": \"2026-11-20\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "21 Eliminar con rol despacho - 403",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Código 403', () => pm.response.to.have.status(403));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_despacho}}"
+          }
+        ],
+        "url": "{{tickets_url}}/tickets/{{ticket_id}}"
+      }
+    },
+    {
+      "name": "22 Eliminar - 204",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Código 204', () => pm.response.to.have.status(204));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{tickets_url}}/tickets/{{ticket_id}}"
+      }
+    },
+    {
+      "name": "23 Eliminar de nuevo - 404",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Código 404', () => pm.response.to.have.status(404));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token_admin}}"
+          }
+        ],
+        "url": "{{tickets_url}}/tickets/{{ticket_id}}"
+      }
+    }
+  ]
+}
