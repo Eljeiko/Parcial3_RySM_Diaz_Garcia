@@ -5,6 +5,7 @@
 // =====================================================================
 const PRIORIDADES = ['baja', 'media', 'alta'];
 const ESTADOS = ['abierto', 'cerrado'];
+ // máximo de tickets abiertos por área
 const FECHA_VALIDA = /^\d{4}-\d{2}-\d{2}$/;
 
 // true si el texto es una fecha real en formato AAAA-MM-DD (rechaza 2026-02-30)
@@ -34,6 +35,9 @@ function validarTicket(datos) {
     errores.push(`estado debe ser uno de: ${ESTADOS.join(', ')}`);
   }
   if (!esFecha(datos.fecha)) errores.push('fecha es obligatoria y debe ser una fecha válida AAAA-MM-DD');
+  if (datos.area_id === undefined || !Number.isInteger(datos.area_id) || datos.area_id <= 0) {
+    errores.push('area_id es obligatorio y debe ser un entero positivo');
+  }
   return errores;
 }
 
@@ -45,6 +49,7 @@ function construirTicket(datos) {
     prioridad: datos.prioridad,
     estado: datos.estado,
     fecha: datos.fecha,
+    area_id: datos.area_id,
   };
 }
 

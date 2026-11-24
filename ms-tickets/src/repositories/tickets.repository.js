@@ -31,17 +31,22 @@ async function findByNumero(numero) {
   return filas.length > 0 ? filas[0] : null;
 }
 
+async function findByAreaId(areaId) {
+  const [filas] = await pool.query('SELECT * FROM tickets WHERE area_id = ?', [areaId]);
+  return filas;
+}
+
 async function create(ticket) {
   const [resultado] = await pool.query(
-    'INSERT INTO tickets (numero, asunto, prioridad, estado, fecha) VALUES (?, ?, ?, ?, ?)',
-    [ticket.numero, ticket.asunto, ticket.prioridad, ticket.estado, ticket.fecha]);
+    'INSERT INTO tickets (numero, asunto, prioridad, estado, fecha, area_id) VALUES (?, ?, ?, ?, ?, ?)',
+    [ticket.numero, ticket.asunto, ticket.prioridad, ticket.estado, ticket.fecha, ticket.area_id]);
   return findById(resultado.insertId);
 }
 
 async function update(id, ticket) {
   const [resultado] = await pool.query(
-    'UPDATE tickets SET numero = ?, asunto = ?, prioridad = ?, estado = ?, fecha = ? WHERE id = ?',
-    [ticket.numero, ticket.asunto, ticket.prioridad, ticket.estado, ticket.fecha, id]);
+    'UPDATE tickets SET numero = ?, asunto = ?, prioridad = ?, estado = ?, fecha = ?, area_id = ? WHERE id = ?',
+    [ticket.numero, ticket.asunto, ticket.prioridad, ticket.estado, ticket.fecha, ticket.area_id, id]);
   if (resultado.affectedRows === 0) return null;
   return findById(id);
 }
@@ -51,4 +56,4 @@ async function remove(id) {
   return resultado.affectedRows > 0;
 }
 
-module.exports = { findAll, findById, findByNumero, create, update, remove };
+module.exports = { findAll, findById, findByNumero, findByAreaId, create, update, remove };
