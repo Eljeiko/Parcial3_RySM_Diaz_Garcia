@@ -8,17 +8,36 @@ const { validarTicket, construirTicket, PRIORIDADES } = require('../models/ticke
 const areasClient = require('../clients/areas.client');
 const HttpError = require('../utils/http-error');
 
+const AVISO_AREAS_NO_DISPONIBLE =
+  'No fue posible conectar con ms-areas; el área no se pudo cargar.';
+
 function componerTicket(ticket, area) {
   const compuesto = { ...ticket, area };
   delete compuesto.area_id;
   return compuesto;
 }
 
+function incluirAvisoAreaNoDisponible(ticket) {
+  const compuesto = { ...ticket, area: null, aviso: AVISO_AREAS_NO_DISPONIBLE };
+  delete compuesto.area_id;
+  return compuesto;
+}
+
+function areasNoDisponible(error) {
+  return error instanceof HttpError && error.status === 503;
+}
+
 async function componerTickets(tickets, authorization) {
   if (tickets.length === 0) return [];
 
   const ids = [...new Set(tickets.map((ticket) => ticket.area_id))];
-  const areas = await areasClient.listarAreas(ids, authorization);
+  let areas;
+  try {
+    areas = await areasClient.listarAreas(ids, authorization);
+  } catch (error) {
+    if (areasNoDisponible(error)) return tickets.map(incluirAvisoAreaNoDisponible);
+    throw error;
+  }
   const areasPorId = new Map(areas.map((area) => [area.id, area]));
 
   return tickets.map((ticket) => componerTicket(ticket, areasPorId.get(ticket.area_id)));
@@ -35,7 +54,13 @@ async function listar(filtros, authorization) {
 async function obtener(id, authorization) {
   const ticket = await repo.findById(id);
   if (!ticket) throw new HttpError(404, `No existe el ticket con id ${id}`);
-  const area = await areasClient.validarArea(ticket.area_id, authorization);
+  let area;
+  try {
+    area = await areasClient.validarArea(ticket.area_id, authorization);
+  } catch (error) {
+    if (areasNoDisponible(error)) return incluirAvisoAreaNoDisponible(ticket);
+    throw error;
+  }
   return componerTicket(ticket, area);
 }
 
@@ -56,6 +81,9 @@ async function crear(datos, authorization) {
   // Regla de negocio: no puede haber dos tickets con el mismo número
   if (await repo.findByNumero(ticket.numero)) {
     throw new HttpError(409, `Ya existe un ticket con el número ${ticket.numero}`);
+  }
+  if (area===null) {
+    throw new HttpError(404, `No existe el área con id ${ticket.area_id}`);
   }
   return componerTicket(await repo.create(ticket), area);
 }

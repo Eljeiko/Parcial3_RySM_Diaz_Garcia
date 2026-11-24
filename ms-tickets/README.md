@@ -46,7 +46,7 @@ Todas las rutas exigen `Authorization: Bearer <token>`.
 | PUT | /tickets/:id | administrador | 200 ticket | 400 · 401 · 403 · 404 · 409 |
 | DELETE | /tickets/:id | administrador | 204 | 400 · 401 · 403 · 404 |
 
-Ejemplo de respuesta de ticket (el área contiene el registro asociado; `area_id` no se expone):
+Ejemplo de respuesta de ticket cuando ms-areas responde (el área contiene el registro asociado; `area_id` no se expone):
 
 ```json
 {
@@ -66,6 +66,7 @@ Ejemplo de respuesta de ticket (el área contiene el registro asociado; `area_id
 ```
 
 Los errores responden `{ "error": "mensaje", "detalles": [...] }`.
+Si ms-areas no está disponible, los `GET` de tickets igualmente devuelven el ticket con `area: null` y un campo `aviso` indicando que no se pudo cargar el área.
 
 ## Pruebas (Postman)
 
